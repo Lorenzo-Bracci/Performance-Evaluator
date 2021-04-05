@@ -35,19 +35,26 @@ public final class ExampleClient
       final int timeout     = (args.length > 1) ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
       final String username = (args.length > 2) ? args[2] : "c17con";
 
-      StreamServiceClient client = DefaultStreamServiceClient.bind(host,timeout,username);
+      StreamServiceClient[] clients = new StreamServiceClient[12];
+
+      for(int i = 0; i < 12;  i++){
+        clients[i] = DefaultStreamServiceClient.bind(host,timeout,username);
+      }
+
 
       int cores = Runtime.getRuntime().availableProcessors();
       System.out.println("nr cores: " + cores);
 
-      listStreamInfo(client);
+      //listStreamInfo(client);
 
       int nr = 2;
       int count = 0;
       //String stream = "stream10";
-      StreamInfo[] streams = client.listStreams();
+      StreamInfo[] streams = clients[0].listStreams();
       StreamInfo stream = streams[7];
-      FrameAccess fa = new FrameAccess(client, stream);
+      //FrameAccess fa = new FrameAccess(client, stream);
+
+      FrameAccessParallel fa = new FrameAccessParallel(clients, stream);
 
       for (int i=0; i<nr; i++)
       {

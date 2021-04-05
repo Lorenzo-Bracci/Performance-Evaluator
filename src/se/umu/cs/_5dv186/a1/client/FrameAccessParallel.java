@@ -6,15 +6,15 @@ import ki.types.ds.StreamInfo;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 
-public class FrameAccess implements FrameAccessor{
+public class FrameAccessParallel implements FrameAccessor{
 
     protected StreamInfo stream;
-    protected StreamServiceClient client;
+    protected StreamServiceClient[] client;
     protected Frame[] frames;
     protected PerformanceStatistics ps;
     int nrFrames;
 
-    public FrameAccess(StreamServiceClient client, StreamInfo stream){
+    public FrameAccessParallel(StreamServiceClient[] client, StreamInfo stream){
         this.client = client;
         this.stream = stream;
         this.frames = new Frame[stream.getWidthInBlocks()*stream.getHeightInBlocks()];
@@ -41,24 +41,41 @@ public class FrameAccess implements FrameAccessor{
 
         long ft1 = System.currentTimeMillis();
 
+        Thread[] t = new Thread[maxY];
+
         for(int blockY = 0; blockY < maxY; blockY++){
-            for(int blockX = 0; blockX < maxX; blockX++){
-                try {
-                    long t1 = System.currentTimeMillis();
-                    client.getBlock(stream.getName(), frame, blockX, blockY);
-                    long t2 = System.currentTimeMillis();
-                    f.blockTime[blockY*maxY+blockX] = t2-t1;
-                    System.out.println("Block retrieved in: " + f.blockTime[blockY*maxY+blockX] + "ms.");
+            int finalBlockY = blockY;
+            Runnable runnable = () -> {
+                System.out.println("Lambda Runnable running");
+                for(int blockX = 0; blockX < maxX; blockX++){
+                    try {
+                        long t1 = System.currentTimeMillis();
+                        client[finalBlockY].getBlock(stream.getName(), frame, blockX, finalBlockY);
+                        long t2 = System.currentTimeMillis();
+                        f.blockTime[finalBlockY *maxY+blockX] = t2-t1;
+                        System.out.println("Block retrieved in: " + f.blockTime[finalBlockY *maxY+blockX] + "ms.");
+                    }
+                    catch (SocketTimeoutException e)
+                    {
+                        f.packetDrops++;
+                        System.out.println("Block drop.");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-                catch (SocketTimeoutException e)
-                {
-                    f.packetDrops++;
-                    System.out.println("block drop.");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            };
+            t[blockY] = new Thread(runnable);
+            t[blockY].start();
+        }
+
+        for(Thread thread : t){
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
+
         long ft2 = System.currentTimeMillis();
         f.frameTime = ft2-ft1;
         frames[frame] = f;
@@ -113,7 +130,7 @@ public class FrameAccess implements FrameAccessor{
             long totalLatency = 0;
 
             for(int i = 0; i < nrFrames; i++)
-                 totalLatency += frames[i].frameTime;
+                totalLatency += frames[i].frameTime;
 
             return (double)totalLatency/(nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
         }
