@@ -46,21 +46,27 @@ public class FrameAccessParallel implements FrameAccessor{
         for(int blockY = 0; blockY < maxY; blockY++){
             int finalBlockY = blockY;
             Runnable runnable = () -> {
-                System.out.println("Lambda Runnable running");
+
+                //System.out.println("Lambda Runnable running");
                 for(int blockX = 0; blockX < maxX; blockX++){
-                    try {
-                        long t1 = System.currentTimeMillis();
-                        client[finalBlockY].getBlock(stream.getName(), frame, blockX, finalBlockY);
-                        long t2 = System.currentTimeMillis();
-                        f.blockTime[finalBlockY *maxY+blockX] = t2-t1;
-                        System.out.println("Block retrieved in: " + f.blockTime[finalBlockY *maxY+blockX] + "ms.");
-                    }
-                    catch (SocketTimeoutException e)
-                    {
-                        f.packetDrops++;
-                        System.out.println("Block drop.");
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    // Implemented resend mechanic.
+                    boolean blockSent = false;
+                    while(!blockSent){
+                        try {
+                            long t1 = System.currentTimeMillis();
+                            client[finalBlockY].getBlock(stream.getName(), frame, blockX, finalBlockY);
+                            long t2 = System.currentTimeMillis();
+                            f.blockTime[finalBlockY *maxY+blockX] = t2-t1;
+                            //System.out.println("Block retrieved in: " + f.blockTime[finalBlockY *maxY+blockX] + "ms.");
+                            blockSent = true;
+                        }
+                        catch (SocketTimeoutException e)
+                        {
+                            f.packetDrops++;
+                            //System.out.println("Block drop.");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             };
@@ -115,6 +121,24 @@ public class FrameAccessParallel implements FrameAccessor{
 
         }
 
+        public double retrieveLatency(int percentage){
+            double totalLatency = 0;
+
+            for(int i = 0; i < percentage; i++)
+                totalLatency += frames[i].frameTime;
+
+            return totalLatency/percentage;
+        }
+
+        public double retrieveThroughput(int percentage){
+            double totalFrameTime = 0;
+
+            for(int i = 0; i < percentage; i++)
+                totalFrameTime += frames[i].frameTime;
+
+            return (percentage*1000)/totalFrameTime;
+        }
+
         @Override
         public double getPacketDropRate(String host) {
             int totalDrops = 0;
@@ -127,12 +151,12 @@ public class FrameAccessParallel implements FrameAccessor{
 
         @Override
         public double getPacketLatency(String host) {
-            long totalLatency = 0;
+            double totalLatency = 0;
 
             for(int i = 0; i < nrFrames; i++)
                 totalLatency += frames[i].frameTime;
 
-            return (double)totalLatency/(nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
+            return totalLatency/(nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
         }
 
         @Override

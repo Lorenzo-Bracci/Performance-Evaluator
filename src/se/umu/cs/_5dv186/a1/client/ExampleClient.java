@@ -47,7 +47,7 @@ public final class ExampleClient
 
       //listStreamInfo(client);
 
-      int nr = 2;
+      int nr = 100;
       int count = 0;
       //String stream = "stream10";
       StreamInfo[] streams = clients[0].listStreams();
@@ -60,6 +60,14 @@ public final class ExampleClient
       {
         fa.receiveFrame(i);
         count++;
+        System.out.println(count);
+      }
+
+      int[] percentages = {50, 80, 95, 99, 100};
+
+      for(int percent : percentages){
+        System.out.println("Latency for " + percent + ": " + fa.getPerformanceStatistics().retrieveLatency(percent));
+        System.out.println("Throughput for " + percent + ": " + fa.getPerformanceStatistics().retrieveThroughput(percent));
       }
 
       System.out.println("Drop rate: " + fa.getPerformanceStatistics().getPacketDropRate("place_holder"));
