@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Main-Class: se.umu.cs._5dv186.a1.client.Client
+
