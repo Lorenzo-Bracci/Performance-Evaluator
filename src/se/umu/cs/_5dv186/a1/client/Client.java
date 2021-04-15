@@ -30,10 +30,10 @@ public final class Client {
             final String host = (args.length > 0) ? args[0] : "itchy.cs.umu.se";
             final int timeout = (args.length > 1) ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
             final String username = (args.length > 2) ? args[2] : "c17con";
-            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 6;
-            final int nrFrames = (args.length > 4) ? Integer.parseInt(args[4]) : 5;
-            final String streamName = (args.length > 5) ? args[5] : "stream7";
-            final String filePath = (args.length > 6) ? args[6] : "res6.csv";
+            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 12;
+            final int nrFrames = (args.length > 4) ? Integer.parseInt(args[4]) : 1;
+            final String streamName = (args.length > 5) ? args[5] : "stream1";
+            final String filePath = (args.length > 6) ? args[6] : "res.csv";
 
             StreamServiceClient[] clients = new StreamServiceClient[nrClients];
             for (int i = 0; i < nrClients; i++) {
@@ -64,7 +64,6 @@ public final class Client {
 
     private static void writeResult(FrameAccess fa, String filePath, int frameCount){
         try {
-            // Creates the file if it does not exist.
             File f = new File(filePath);
             f.createNewFile();
 
@@ -76,7 +75,6 @@ public final class Client {
                             + df.format(fa.getPerformanceStatistics().getBandwidthUtilization())+",\n";
 
             Files.write(Paths.get(filePath), csvEntry.getBytes(), StandardOpenOption.APPEND);
-
 
             File fl = new File("l"+filePath);
             fl.createNewFile();
@@ -93,14 +91,17 @@ public final class Client {
                 Files.write(Paths.get("l"+filePath), (stringBuilder+"\n").getBytes(), StandardOpenOption.APPEND);
             }
 
-            //todo: handle frame interval performance
-            /*if(frameCount > 99){
+            // Extra credit.
+            if(frameCount > 99){
+                File fp = new File("p"+filePath);
+                fp.createNewFile();
+                StringBuilder stringBuilder = new StringBuilder();
                 int[] percentages = {50, 80, 95, 99, 100};
                 for (int percent : percentages) {
-                    //System.out.println("Latency for " + percent + ": " + fa.getPerformanceStatistics().retrieveLatency(percent));
-                    //System.out.println("Throughput for " + percent + ": " + fa.getPerformanceStatistics().retrieveThroughput(percent));
+                    stringBuilder.append(fa.getPerformanceStatistics().retrieveLatency(percent)+",");
                 }
-            }*/
+                Files.write(Paths.get("p"+filePath), (stringBuilder+"\n").getBytes(), StandardOpenOption.APPEND);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

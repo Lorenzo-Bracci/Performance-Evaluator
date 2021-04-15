@@ -13,7 +13,6 @@ public class FrameAccess implements FrameAccessor {
     protected StreamServiceClient[] client;
     protected Frame[] frames;
     protected PerformanceStatistics ps;
-    protected int[] blockTime;
     int nrFrames;
 
     public FrameAccess(StreamServiceClient[] client, StreamInfo stream){
@@ -21,7 +20,6 @@ public class FrameAccess implements FrameAccessor {
         this.stream = stream;
         this.frames = new Frame[stream.getWidthInBlocks()*stream.getHeightInBlocks()];
         this.ps = new PerformanceStatistics();
-        this.blockTime = new int[stream.getWidthInBlocks()*stream.getHeightInBlocks()];
         this.nrFrames = 0;
     }
 
@@ -36,10 +34,24 @@ public class FrameAccess implements FrameAccessor {
         int maxY = stream.getHeightInBlocks();
         Frame f = new Frame();
 
-        long ft1 = System.currentTimeMillis();
+        // Block partition.
+        int[] localN = new int[client.length];
+        int rest = (maxX*maxY) % client.length;
 
+        for(int i = 0; i < client.length; i++){
+            if (rest > i)
+                localN[i] = maxX*maxY + 1;
+            else
+                localN[i] = maxX*maxY;
+        }
+
+
+
+        long ft1 = System.currentTimeMillis();
         ExecutorService executor = Executors.newFixedThreadPool(client.length);
         CountDownLatch latch = new CountDownLatch(maxY);
+
+
 
         for(int blockY = 0; blockY < maxY; blockY++){
             int finalBlockY = blockY;
@@ -52,6 +64,7 @@ public class FrameAccess implements FrameAccessor {
                     long t1 = System.currentTimeMillis();
                     while(!blockSent){
                         try {
+                            //client[0].getBlock(stream.getName(), frame, blockX, finalBlockY);
                             client[finalBlockY % client.length].getBlock(stream.getName(), frame, blockX, finalBlockY);
                             long t2 = System.currentTimeMillis();
                             f.blockTime[finalBlockY*maxY+blockX] = t2-t1;
