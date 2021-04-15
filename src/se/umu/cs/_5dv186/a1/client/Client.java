@@ -27,12 +27,12 @@ public final class Client {
     //----------------------------------------------------------
     public static void main(String[] args) {
         try {
-            final String host = (args.length > 0) ? args[0] : "itchy.cs.umu.se";
+            final String host = (args.length > 0) ? args[0] : "scratchy.cs.umu.se";
             final int timeout = (args.length > 1) ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
             final String username = (args.length > 2) ? args[2] : "c17con";
-            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 12;
+            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 20;
             final int nrFrames = (args.length > 4) ? Integer.parseInt(args[4]) : 1;
-            final String streamName = (args.length > 5) ? args[5] : "stream1";
+            final String streamName = (args.length > 5) ? args[5] : "stream7";
             final String filePath = (args.length > 6) ? args[6] : "res.csv";
 
             StreamServiceClient[] clients = new StreamServiceClient[nrClients];

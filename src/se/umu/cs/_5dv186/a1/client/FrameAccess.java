@@ -13,7 +13,9 @@ public class FrameAccess implements FrameAccessor {
     protected StreamServiceClient[] client;
     protected Frame[] frames;
     protected PerformanceStatistics ps;
+    private int[] localN;
     int nrFrames;
+
 
     public FrameAccess(StreamServiceClient[] client, StreamInfo stream){
         this.client = client;
@@ -21,6 +23,18 @@ public class FrameAccess implements FrameAccessor {
         this.frames = new Frame[stream.getWidthInBlocks()*stream.getHeightInBlocks()];
         this.ps = new PerformanceStatistics();
         this.nrFrames = 0;
+
+        // Block partition.
+        this.localN = new int[client.length];
+        int rest = (stream.getWidthInBlocks()*stream.getHeightInBlocks()) % client.length;
+        for(int i = 0; i < client.length; i++){
+            if (rest > i) {
+                localN[i] = (stream.getWidthInBlocks()*stream.getHeightInBlocks())/client.length + 1;
+            }
+            else {
+                localN[i] = (stream.getWidthInBlocks()*stream.getHeightInBlocks())/client.length;
+            }
+        }
     }
 
     @Override
@@ -31,45 +45,39 @@ public class FrameAccess implements FrameAccessor {
     @Override
     public Frame getFrame(int frame) throws IOException, SocketTimeoutException {
         int maxX = stream.getWidthInBlocks();
-        int maxY = stream.getHeightInBlocks();
         Frame f = new Frame();
 
-        // Block partition.
-        int[] localN = new int[client.length];
-        int rest = (maxX*maxY) % client.length;
-
-        for(int i = 0; i < client.length; i++){
-            if (rest > i)
-                localN[i] = maxX*maxY + 1;
-            else
-                localN[i] = maxX*maxY;
-        }
-
-
-
+        // Start time.
         long ft1 = System.currentTimeMillis();
+
         ExecutorService executor = Executors.newFixedThreadPool(client.length);
-        CountDownLatch latch = new CountDownLatch(maxY);
+        CountDownLatch latch = new CountDownLatch(client.length);
 
+        int startingBlock = 0;
+        for(int i = 0; i < client.length; i++){
 
+            int finalI = i;
+            int finalStartingBlock = startingBlock;
 
-        for(int blockY = 0; blockY < maxY; blockY++){
-            int finalBlockY = blockY;
-
-            executor.execute(() -> {
-                for(int blockX = 0; blockX < maxX; blockX++){
+            executor.execute(()->{
+                for(int block = finalStartingBlock; block < finalStartingBlock + localN[finalI]; block++){
                     // Implemented resend mechanic.
                     boolean blockSent = false;
                     // blockTime affected by drops.
                     long t1 = System.currentTimeMillis();
+
+                    int blockY = block/maxX;
+                    int blockX = block % maxX;
+
                     while(!blockSent){
                         try {
-                            //client[0].getBlock(stream.getName(), frame, blockX, finalBlockY);
-                            client[finalBlockY % client.length].getBlock(stream.getName(), frame, blockX, finalBlockY);
+                            client[finalI].getBlock(stream.getName(), frame, blockX, blockY);
                             long t2 = System.currentTimeMillis();
-                            f.blockTime[finalBlockY*maxY+blockX] = t2-t1;
-                            //System.out.println("BLOCK Y: " + finalBlockY + " Block retrieved in: " + f.blockTime[finalBlockY *maxY+blockX] + "ms.");
+                            //System.out.println("BLOCK: " + block + " FINAL STARTING BLOCK: " + finalStartingBlock);
+                            f.blockTime[block] = t2-t1;
+                            System.out.println("BLOCK Y: " + blockY + " BLOCK X: " + blockX + " Block retrieved in: " + f.blockTime[block] + "ms.");
                             blockSent = true;
+
                         }
                         catch (SocketTimeoutException e)
                         {
@@ -82,6 +90,7 @@ public class FrameAccess implements FrameAccessor {
                 }
                 latch.countDown();
             });
+            startingBlock += localN[i];
         }
 
         try {
@@ -154,7 +163,7 @@ public class FrameAccess implements FrameAccessor {
             for(int i = 0; i < nrFrames; i++)
                 totalDrops += frames[i].packetDrops;
 
-            return (double)totalDrops/(nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
+            return (double)totalDrops/(totalDrops+nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
         }
 
         @Override
@@ -182,7 +191,7 @@ public class FrameAccess implements FrameAccessor {
         // todo: account for block-drops. Dropped blocks are resent, still contribute to bandwidth utilization?
         @Override
         public double getBandwidthUtilization() {
-            int bitsInFrame = stream.getHeightInBlocks()*stream.getWidthInBlocks()*24*16*16;
+            int bitsInFrame = stream.getHeightInBlocks()*stream.getWidthInBlocks()*24*16*16+64;
 
             return bitsInFrame*getFrameThroughput();
         }
