@@ -75,7 +75,7 @@ public class FrameAccess implements FrameAccessor {
                             long t2 = System.currentTimeMillis();
                             //System.out.println("BLOCK: " + block + " FINAL STARTING BLOCK: " + finalStartingBlock);
                             f.blockTime[block] = t2-t1;
-                            System.out.println("BLOCK Y: " + blockY + " BLOCK X: " + blockX + " Block retrieved in: " + f.blockTime[block] + "ms.");
+                            //System.out.println("BLOCK Y: " + blockY + " BLOCK X: " + blockX + " Block retrieved in: " + f.blockTime[block] + "ms.");
                             blockSent = true;
 
                         }
@@ -177,7 +177,6 @@ public class FrameAccess implements FrameAccessor {
             return totalLatency/(nrFrames*stream.getHeightInBlocks()*stream.getWidthInBlocks());
         }
 
-        // todo: investigate packet drops.
         @Override
         public double getFrameThroughput() {
             double totalFrameTime = 0;
@@ -188,7 +187,6 @@ public class FrameAccess implements FrameAccessor {
             return (nrFrames*1000)/totalFrameTime;
         }
 
-        // todo: account for block-drops. Dropped blocks are resent, still contribute to bandwidth utilization?
         @Override
         public double getBandwidthUtilization() {
             int bitsInFrame = stream.getHeightInBlocks()*stream.getWidthInBlocks()*24*16*16+64;

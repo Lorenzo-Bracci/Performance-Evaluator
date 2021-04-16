@@ -30,7 +30,7 @@ public final class Client {
             final String host = (args.length > 0) ? args[0] : "scratchy.cs.umu.se";
             final int timeout = (args.length > 1) ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
             final String username = (args.length > 2) ? args[2] : "c17con";
-            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 20;
+            final int nrClients = (args.length > 3) ? Integer.parseInt(args[3]) : 27;
             final int nrFrames = (args.length > 4) ? Integer.parseInt(args[4]) : 1;
             final String streamName = (args.length > 5) ? args[5] : "stream7";
             final String filePath = (args.length > 6) ? args[6] : "res.csv";
@@ -70,9 +70,10 @@ public final class Client {
             DecimalFormat df = new DecimalFormat("#.#####");
 
             // Write in the order: drop rate, fps, bandwidth utilization.
-            String csvEntry = df.format(fa.getPerformanceStatistics().getPacketDropRate("placeholder"))+","
+            String csvEntry = df.format(fa.getPerformanceStatistics().getPacketDropRate(""))+","
                             + df.format(fa.getPerformanceStatistics().getFrameThroughput())+","
-                            + df.format(fa.getPerformanceStatistics().getBandwidthUtilization())+",\n";
+                            + df.format(fa.getPerformanceStatistics().getBandwidthUtilization())+","
+                            + df.format(fa.getPerformanceStatistics().getPacketLatency(""))+",\n";
 
             Files.write(Paths.get(filePath), csvEntry.getBytes(), StandardOpenOption.APPEND);
 
