@@ -7,6 +7,12 @@ public class Factory implements FrameAccessor.Factory {
 
     public Factory(){}
 
+    /**
+     * Create and get a FrameAccess object using only one client.
+     * @param client - client for FrameAccess object.
+     * @param stream - stream for FrameAccess object to gather data from.
+     * @return - FrameAccess object.
+     */
     @Override
     public FrameAccess getFrameAccessor(StreamServiceClient client, String stream) {
         StreamInfo s = null;
@@ -23,7 +29,6 @@ public class Factory implements FrameAccessor.Factory {
             e.printStackTrace();
         }
 
-        // Convert to match the constructor of FrameAccess.
         StreamServiceClient[] clients = new StreamServiceClient[1];
         clients[0] = client;
 
@@ -31,6 +36,12 @@ public class Factory implements FrameAccessor.Factory {
         return new FrameAccess(clients, s);
     }
 
+    /**
+     * Create and get a FrameAccess object using an array of clients.
+     * @param clients - clients for FrameAccess object.
+     * @param stream - stream for FrameAccess object to gather data from.
+     * @return - FrameAccess object.
+     */
     @Override
     public FrameAccess getFrameAccessor(StreamServiceClient[] clients, String stream) {
         StreamInfo s = null;
